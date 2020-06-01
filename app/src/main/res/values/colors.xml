@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary"      >#6200EE</color>
+    <color name="colorPrimaryDark"  >#3700B3</color>
+    <color name="colorAccent"       >#03DAC5</color>
+
+    <color name="oneHour_dark"      >#5c1100</color>
+    <color name="longer_dark"       >#394701</color>
+    <color name="oneDay_dark"       >#02085c</color>
+    <color name="oneHour_light"     >#FADCD6</color>
+    <color name="longer_light"      >#F2F8DD</color>
+    <color name="oneDay_light"      >#E3E5FD</color>
+
+    <color name="general"           >#f0f0f0</color>
+
+    <color name="vwPager_bg"        >#ffffff</color>
+    <color name="disabledText"      >#dfdfd0</color>
+</resources>
+

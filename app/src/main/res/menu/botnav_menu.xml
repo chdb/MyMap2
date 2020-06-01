@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    >
+    <item
+        android:id="@+id/email"
+        android:title="email"
+        android:icon="@drawable/ic_email"
+        />
+    <item
+        android:id="@+id/chat"
+        android:title="message"
+        android:icon="@drawable/ic_chat"
+        />
+    <item
+        android:id="@+id/phone"
+        android:title="phone"
+        android:icon="@drawable/ic_phone"
+        />
+    <item
+        android:id="@+id/subscribe"
+        android:title="subscribe"
+        android:icon="@drawable/ic_subscribe"
+        />
+    <item
+        android:id="@+id/directions"
+        android:title="directions"
+        android:icon="@drawable/ic_directions"
+        />
+
+    <!--    <item-->
+<!--        android:id="@+id/icon_1hr"-->
+<!--        android:title="1 hr"-->
+<!--        android:icon="@drawable/ic_account"-->
+<!--        android:orderInCategory="0"-->
+<!--        app:showAsAction="always"-->
+<!--    app:showAsAction="always|withText"-->
+    <!--        />-->
+<!--    <item-->
+<!--        android:id="@+id/icon_long"-->
+<!--        android:title="long"-->
+<!--        android:icon="@drawable/ic_account"-->
+<!--        android:orderInCategory="0"-->
+<!--        app:showAsAction="always"-->
+<!--        />-->
+<!--    <item-->
+<!--        android:id="@+id/icon_1day"-->
+<!--        android:title="1 day"-->
+<!--        android:icon="@drawable/ic_account"-->
+<!--        android:orderInCategory="0"-->
+<!--        app:showAsAction="always"-->
+<!--        />-->
+<!-- app:showAsAction=   "ifRoom|withText"-->
+</menu>

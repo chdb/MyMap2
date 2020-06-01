@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="vwpager_item_hmargin">8dp</dimen>  <!-- amount of next items (left and right) that is visible -->
+    <dimen name="vwpager_next_visible">20dp</dimen> <!-- horizontal margin between items    -->
+</resources>

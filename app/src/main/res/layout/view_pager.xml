@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--<androidx.constraintlayout.widget.ConstraintLayout
+ android:layout_margin="16dp"-->
+<!--<androidx.constraintlayout.widget.ConstraintLayout
+xmlns:tools="http://schemas.android.com/tools"-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/rounded_corner"
+    android:orientation="vertical">
+
+    <!--        android:text="XXXXXXXXXXXXXX"-->
+    <!--        "@color/common_google_signin_btn_text_light"-->
+    <!--    android:background="@color/cardview_light_background"
+    android:text="XXX"-->
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-black"
+        android:paddingBottom="6dp"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabs"
+        style="@style/MyTabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        app:tabGravity="fill"
+        app:tabIndicatorFullWidth="true"
+        app:tabIndicatorHeight="0dp"
+        app:tabMaxWidth="100000dp"
+        app:tabMode="fixed">
+        <!--        android:background="@color/color1Day_dark"-->
+        <!--        android:background="@color/color1Hour_dark"-->
+        <!--        android:background="@color/colorLong_dark"-->
+        <!--        <com.google.android.material.tabs.TabItem-->
+        <!--            android:id="@+id/onehr"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:text="1 hour"-->
+        <!--            />-->
+
+        <!--        <com.google.android.material.tabs.TabItem-->
+        <!--            android:id="@+id/longer"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:text="Longer"-->
+        <!--            />-->
+
+        <!--        <com.google.android.material.tabs.TabItem-->
+        <!--            android:id="@+id/oneday"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:text="1 Day"-->
+        <!--            />-->
+    </com.google.android.material.tabs.TabLayout>
+
+    <!--    app:titleTextAppearance="@style/yourstyle"-->
+
+    <!--    <androidx.appcompat.widget.Toolbar-->
+    <!--        android:id="@+id/toolbar"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        app:theme="@style/ThemeOverlay.AppCompat.Light"-->
+    <!--        app:contentInsetStart="8dp"-->
+    <!--        android:background="@android:color/white"-->
+    <!--        app:titleMargins="0dp"-->
+    <!--        android:fitsSystemWindows="false"-->
+    <!--        />-->
+    <TextView
+        android:id="@+id/tabContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:textColor="@android:color/black"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/general"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:padding="0dp"
+        android:background="@color/general"
+        android:textColor="@android:color/black"
+        android:textSize="14sp"
+        />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bot_nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom"
+        android:background="@android:color/white"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/botnav_menu"
+        />
+    <!--    app:itemIconTint="@color/common_google_signin_btn_text_light_pressed"-->
+    <!--    app:itemTextColor="@color/common_google_signin_btn_text_light"-->
+</LinearLayout>
+<!--</androidx.constraintlayout.widget.ConstraintLayout>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvTitle"
+        app:layout_constraintTop_toTopOf="parent"
+
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tabs"
+-->
