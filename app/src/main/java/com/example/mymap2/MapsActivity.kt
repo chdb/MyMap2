@@ -205,16 +205,15 @@ class MapsActivity
         val gs = tabLt.tag as GroupSit
         for (i in tabLt.tabCount-1 downTo 0) {
             val tab = tabLt.getTabAt(i)
-            val mode = tab?.tag as Int
-            val empty = (when (mode) {
+            val empty = (when (i) {
                             ONEHOUR-> gs.onehour
                             LONGER -> gs.longer
                             ONEDAY -> gs.oneday
-                            else   -> throw IllegalStateException("bad index: $mode")
+                            else   -> throw IllegalStateException("bad index: $i")
                         } == "" )
             if (empty) {
-                tab.view.visibility = if (bEdit) View.VISIBLE else View.GONE
-                // if the tag is currently selected but empty and now set to GONE then choose a non empty tag as selected one
+                tab?.view?.visibility = visible(bEdit) // show/hide empty tabs
+                // if selected tab is empty, but now set to GONE, needs to select a non empty tag instead
                 if (!bEdit && tabLt.selectedTabPosition == i) {
                     val i2 = if (i > 0) i - 1 else tabLt.tabCount - 1
                     tabLt.selectTab(tabLt.getTabAt(i2))
@@ -338,7 +337,7 @@ class MapsActivity
             true
         }
         mRenderer = CustomClusterRenderer(this, mMap, mClusterManager)
-        //mRenderer.setAnimation(false)
+        mRenderer.setAnimation(true)
         mClusterManager.renderer = mRenderer
 //        mClusterManager.renderer = CustomClusterRenderer(this, mMap, mClusterManager)
     }

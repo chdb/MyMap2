@@ -64,7 +64,6 @@ class ViewPagerAdapter
         fun addTab(mode :Int, tabTitle :String, content :String) {
             val tab = tabLt.newTab().setText(tabTitle)
             val clr = modeColour(mode)
-            tab.tag = mode
             tab.view.background = clr
             tabLt.addTab(tab)
             if (content == "")
@@ -92,8 +91,7 @@ class ViewPagerAdapter
         tabLt.addOnTabSelectedListener (object :TabLayout.OnTabSelectedListener {
             override fun onTabSelected (tab: TabLayout.Tab) {
                 val gs = tab.parent?.tag as GroupSit //parent is TabLayout
-                val mode = tab.tag as Int
-                when (mode){
+                when (tab.position){
                     ONEHOUR-> setContent (ONEHOUR, gs.onehour)
                     LONGER -> setContent (LONGER , gs.longer )
                     ONEDAY -> setContent (ONEDAY , gs.oneday )
@@ -106,9 +104,7 @@ class ViewPagerAdapter
     }
 }
 
-class TabTag  ( val mode :Int
-              , val gs :GroupSit
-              )
+
 fun drawable (clrSlctr: Int) = ContextCompat.getDrawable(context, clrSlctr)
 fun colour (clrId: Int)      = ContextCompat.getColor(context, clrId)
 
