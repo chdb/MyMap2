@@ -28,22 +28,22 @@ const val ONEDAY_BIT  = 4
 data class GroupSit ( val id      :Int
                     , val name    :String
                     , val locn    :LatLng
-                    , val onehour :String? = null
-                    , val oneday  :String? = null
-                    , val longer  :String? = null
-                    , val general :String? = null
-                    , val phone   :String? = null
-                    , val email   :String? = null
+                    , val onehour :String = ""
+                    , val oneday  :String = ""
+                    , val longer  :String = ""
+                    , val general :String = ""
+                    , val phone   :String = ""
+                    , val email   :String = ""
                     , var mkr     :Marker? = null
                     , var idx     :Int = -1
                     , var modeSet :Int = 0
 )   : ClusterItem
     , Comparable <GroupSit>
 {
-     init {
-        val hBit = onehour?.let{ ONEHOUR_BIT} ?: 0
-        val lBit = longer ?.let{ LONGER_BIT } ?: 0
-        val dBit = oneday ?.let{ ONEDAY_BIT } ?: 0
+    init {
+        val hBit = if (onehour != "") ONEHOUR_BIT else 0
+        val lBit = if (longer  != "") LONGER_BIT  else 0
+        val dBit = if (oneday  != "") ONEDAY_BIT  else 0
         modeSet = hBit or lBit or dBit
   //      require(modeSet != 0)  {"GS must have at least one of the 3 modes (onehour, longer, oneday)"}
        // require(phone!=null || email!=null) {"GS must have at least one contact point (phone, email)"}
@@ -54,9 +54,11 @@ data class GroupSit ( val id      :Int
     override fun equals(other: Any?) = (other is GroupSit) && id == other.id
     override fun compareTo(other: GroupSit): Int {
         val d =  locn.longitude - other.locn.longitude
-        if (d != 0.0) return if (d > 0.0) 1 else -1
+        if (d != 0.0)
+            return if (d > 0.0) 1 else -1
         val e =  locn.latitude - other.locn.latitude
-        if (e != 0.0) return if (e > 0.0) 1 else -1
+        if (e != 0.0)
+            return if (e > 0.0) 1 else -1
         check (this == other) // Two different GroupSit's cannot have the same location.
         return 0
     }
@@ -137,33 +139,33 @@ abstract class App {
             GroupSit( 70
                 ,"London, Dhamma Shed"
                 , LatLng(51.544647, -0.065448)
-                , "D! Every Evening: (just turn up)   7 –  8 pm"
-                , "D! One Day Course:(book by email) \n" +
-                        "   last Saturday of each month: 9am–6pm"
-                , "D! 3 hours: every Sunday:    10 am –  1 pm\n" +
-                        "      and every Thursday:     9 am – 12 noon"
-                , "D! We Never Cancel!  Cushions provided."
+                , "Every Evening: (just turn up)   7 –  8 pm"
+                , "One Day Course:(book by email) \n" +
+                     "   last Saturday of each month: 9am–6pm"
+                , "3 hours: every Sunday:    10 am –  1 pm\n" +
+                     "      and every Thursday:     9 am – 12 noon"
+                , "We Never Cancel!  Cushions provided."
                 , "07960 130 587"
                 , "vipassana_hackney@gmail.com"
             )
             , GroupSit( 71
                 ,"London, Bloomsbury"
                 , LatLng(51.52293, -0.1175)
-                , "B! One hour every Tuesday  7 - 8 pm"
-                , "B! One Day Course on 2nd Sunday of each month 10 am - 4 pm.  " +
+                , "One hour every Tuesday  7 - 8 pm"
+                , "One Day Course on 2nd Sunday of each month 10 am - 4 pm.  " +
                         "Dress modestly. Bring a packed lunch.  No entry 10.15 to 12.40.  Afternoon sitters arrive 12.40 to 1.10pm"
                 , general = "Cushions are provided. Please arrive in good time."
             )
             , GroupSit( 72
                 ,"London, West Hampstead"
                 , LatLng(51.546085, -0.189796)
-                , "W! One hour every Monday  8 - 9 pm\n" +
+                , "One hour every Monday  8 - 9 pm\n" +
                         "Bring a cushion, yoga mats are provided but please ask in advance"
             )
             , GroupSit(73
                 ,"London, Paddington"
                 , LatLng(51.52279, -0.192015)
-                , "P! Every evening at 6 pm\n" +
+                , "Every evening at 6 pm\n" +
                         "Cushions and chairs provided.\n" +
                         "Please contact Mohan before first visit."
             )
@@ -185,13 +187,10 @@ abstract class App {
                 ,"GS 16"
                 , LatLng(51.4, -0.05)
                 ,"16!"
-                ,"16!"
-                ,"16!"
             )
             , GroupSit( 2
                 ,"GS 2"
                 , LatLng(51.6, 0.06)
-                ,"2!"
                 ,"2!"
                 ,"2!"
             )
@@ -200,12 +199,10 @@ abstract class App {
                 , LatLng(51.4, -0.06)
                 ,"15!"
                 ,"15!"
-                ,"15!"
             )
             , GroupSit( 3
                 ,"GS 3"
                 , LatLng(51.6, 0.07)
-                ,"3!"
                 ,"3!"
             )
             , GroupSit( 14
@@ -217,14 +214,10 @@ abstract class App {
                 ,"GS 13"
                 , LatLng(51.42, -0.08)
                 ,"13!"
-                ,"13!"
-                ,"13!"
             )
             , GroupSit( 12
                 ,"GS 12"
                 , LatLng(51.43, -0.09)
-                ,"12!"
-                ,"12!"
                 ,"12!"
             )
             , GroupSit( 11

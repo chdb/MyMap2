@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/linLayout"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
@@ -17,16 +16,51 @@
         android:layout_height="match_parent"
         tools:context=".MapsActivity"
         />
-
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/vwPager"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="12dp"
         >
-<!--        <include layout = "@layout/view_pager"/>-->
+        <ImageButton
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/white"
+            android:onClick="onClickEditDone"
+            android:padding="3dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_baseline_done_24"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:id="@+id/done"
+            android:layout_marginRight="50dp"
+            android:visibility="gone"
 
-    </androidx.viewpager2.widget.ViewPager2>
+            />
+        <ImageButton
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/white"
+            android:onClick="onClickEditCancel"
+            android:padding="3dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_baseline_cancel_24"
+            android:layout_toLeftOf="@+id/done"
+            android:layout_marginRight="8dp"
+            android:id="@+id/cancel"
+            android:visibility="gone"
+        />
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/vwPager"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="12dp"
+            android:layout_below="@id/done"
+            />
+    </RelativeLayout>
+
+ <!--        <include layout = "@layout/view_pager"/>-->
+
+<!--    </androidx.viewpager2.widget.ViewPager2>-->
 
 </FrameLayout>

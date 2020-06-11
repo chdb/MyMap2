@@ -5,10 +5,12 @@ package com.example.mymap2
 //import com.google.maps.android.clustering.algo
 
 //import android.R
+import android.content.Context
 import android.graphics.Rect
 import android.os.Bundle
 import android.os.Handler
 import android.view.View
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.marginBottom
 import androidx.recyclerview.widget.RecyclerView
@@ -24,6 +26,8 @@ import com.google.maps.android.clustering.view.DefaultClusterRenderer
 import kotlinx.android.synthetic.main.activity_maps.*
 import kotlin.math.abs
 import kotlin.math.cos
+import android.view.inputmethod.InputMethodManager as InputMethodManager_
+import com.google.android.material.tabs.TabLayout as TabLayout_
 
 
 // Adds margin to the left and right sides of the RecyclerView item.
@@ -113,6 +117,8 @@ class MapsActivity
         initViewPager()
         // To find unclustered GSs, we put code in onClusterItemRendered() and onClusterRendered() but we also need
         // to count the calls and monitor the count with a handler, in order know when all calls have finished.
+        //todo: do we really need this? - why not just put this line in onClusterItemRendered() and onClusterRendered()
+        //       if (mCountGSs == App.allGroupSittings.size)   setVisibleGSs(true)
         mHandler = Handler()
         mCheckGSCount = Runnable {
             if (mCountGSs == App.allGroupSittings.size) {
@@ -150,24 +156,85 @@ class MapsActivity
         }
     }
 
-//    private fun setSelectedGs(gs: GroupSit) {
-//        todo selGroupSit() is now in a cluster, so mkr is invalid
-//          - set selGroupSit() to null ?
-//         - set mkr to null ?
-//         ???
 //
-//        todo replace idx with index()
+//        todo replace groupSit idx with index()
 //
-//         todo review all the updateSubList code
-        //val rndr = mClusterManager.renderer as CustomClusterRenderer
-//        val oldmkr = mSelectedGS()?.let { mCustomRenderer.getMarker(it) }
-//        val newmkr = mCustomRenderer.getMarker(gs)
-//        log("old mkr = $oldmkr     new mkr = $newmkr"   )
 
-//        mSelectedGS?.mkr?.setIcon(mDefMarkerIcon)
-//        gs.mkr?.setIcon(mSelMarkerIcon)
-//        mSelectedGS = gs
-//    }
+    fun onClickEdit (editBtn: View){
+        val linLt = editBtn.parent.parent as LinearLayout
+        val relLt = linLt.parent.parent.parent as RelativeLayout
+        val doneBtn   = relLt.findViewById<ImageButton>(R.id.done)
+        val cancelBtn = relLt.findViewById<ImageButton>(R.id.cancel)
+        val edTxt = setEditMode (linLt, editBtn, doneBtn, cancelBtn, true)
+        vwPager.tag = linLt
+        edTxt.requestFocus()
+        edTxt.setSelection(edTxt.text.length)
+    }
+
+    fun onClickEditDone (doneBtn: View){
+        //todo: Save changes
+        doneOrCancel (doneBtn, true)
+    }
+
+    fun onClickEditCancel (cancelBtn: View) {
+        doneOrCancel (cancelBtn, false)
+    }
+
+    private fun doneOrCancel(btn: View, bDoneBtn :Boolean) {
+        val relLt = btn.parent as RelativeLayout
+        val doneBtn   = if ( bDoneBtn) btn else relLt.findViewById<ImageButton>(R.id.done)
+        val cancelBtn = if (!bDoneBtn) btn else relLt.findViewById<ImageButton>(R.id.cancel)
+        val linLt = vwPager.tag as View
+        val editBtn = linLt.findViewById<ImageButton>(R.id.editBtn)
+        setEditMode (linLt, editBtn, cancelBtn, doneBtn, false)
+    }
+
+    private fun setEditMode (linLt: View, editBtn: View, cancelBtn: View, doneBtn: View, bEdit :Boolean) :EditText {
+        vwPager.isUserInputEnabled = !bEdit
+        editBtn  .visibility = visible(!bEdit)
+        cancelBtn.visibility = visible (bEdit)
+        doneBtn  .visibility = visible (bEdit)
+        val edTxt = linLt.findViewById<EditText>(R.id.tvTitle)
+        edTxt.isEnabled = bEdit
+        linLt.findViewById<EditText>(R.id.tabContent).isEnabled = bEdit
+        linLt.findViewById<EditText>(R.id.general)   .isEnabled = bEdit
+        linLt.background = if (bEdit) drawable(R.drawable.rounded_corner_2)
+                           else       drawable(R.drawable.rounded_corner)
+
+        val tabLt = linLt.findViewById(R.id.tabLt) as TabLayout_
+        val gs = tabLt.tag as GroupSit
+        for (i in tabLt.tabCount-1 downTo 0) {
+            val tab = tabLt.getTabAt(i)
+            val mode = tab?.tag as Int
+            val empty = (when (mode) {
+                            ONEHOUR-> gs.onehour
+                            LONGER -> gs.longer
+                            ONEDAY -> gs.oneday
+                            else   -> throw IllegalStateException("bad index: $mode")
+                        } == "" )
+            if (empty) {
+                tab.view.visibility = if (bEdit) View.VISIBLE else View.GONE
+                // if the tag is currently selected but empty and now set to GONE then choose a non empty tag as selected one
+                if (!bEdit && tabLt.selectedTabPosition == i) {
+                    val i2 = if (i > 0) i - 1 else tabLt.tabCount - 1
+                    tabLt.selectTab(tabLt.getTabAt(i2))
+                }
+            }
+        }
+        showKeyboard(bEdit, edTxt)
+        return edTxt
+    }
+
+    private fun showKeyboard (bShow :Boolean, view: View){
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager_
+        //imm.toggleSoftInput(InputMethodManager1.SHOW_FORCED, InputMethodManager1.HIDE_IMPLICIT_ONLY)
+        if (bShow)
+            imm.showSoftInput(view, InputMethodManager_.SHOW_IMPLICIT);
+        else
+            imm.hideSoftInputFromWindow(view.windowToken, 0);
+    }
+
+    private fun visible (b :Boolean) = if (b) View.VISIBLE else View.GONE
 
     var mSelectedGS :GroupSit? = null
 
@@ -242,10 +309,12 @@ class MapsActivity
         //todo: under the default algorithm, cluster() calculates the clustering for the entire world, at current zoom level.
         // For a larger data set we will probably need a more focused algorithm
         // eg "NonHierarchicalVIEWBasedAlgorithm" which is similar to the default "NonHierarchicalDISTANCEBasedAlgorithm"
-        // but "works only on the visible area"; therefore cluster() should be much faster but would need to be called on panning as well as on a zoom.
-        // Android Studio does not seem to recognise it, so we would need to include the package dependency etc.
+        // but "works only on the visible area"; therefore cluster() should be much faster but would need to be called on a pan as well as on a zoom.
+        // Android Studio would need to include the package dependency etc.
         // https://github.com/googlemaps/android-maps-utils/tree/master/library/src/main/java/com/google/maps/android/clustering/algo
-        //mClusterManager.algorithm = NonHierarchicalViewBasedAlgorithm (width, height)
+        //             mClusterManager.algorithm = NonHierarchicalViewBasedAlgorithm (width, height)
+        // Alternatively - other cluster libraries ???
+
         mMap.setOnMarkerClickListener(mClusterManager)
 
         mClusterManager.setOnClusterClickListener {

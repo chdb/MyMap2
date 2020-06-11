@@ -9,7 +9,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import androidx.core.view.forEach
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mymap2.App.Companion.context
 import com.google.android.material.tabs.TabLayout
@@ -52,61 +51,54 @@ class ViewPagerAdapter
         // holder is actually a ViewGroup layout for a Group Sit
         // posn is the position of the holder in the viewPager array
         log("                    onBindViewHolder $posn")
-        val tabs = holder.itemView.tabs
+        val tabLt = holder.itemView.tabLt
         val tabContent = holder.itemView.tabContent
 
-        fun drawable (clrSlctr: Int) = ContextCompat.getDrawable(context, clrSlctr)
-        fun colour (clrId: Int)   = ContextCompat.getColor(context, clrId)
-        fun modeColour(mode: Int) = drawable(
-            when(mode){
-                ONEHOUR-> R.drawable.onehour_tabcolor_selector
-                LONGER -> R.drawable. longer_tabcolor_selector
-                ONEDAY -> R.drawable. oneday_tabcolor_selector
-                else -> throw IllegalStateException("bad index: $mode")
-            })
         fun setContent(mode :Int?, content :String?, clr :Drawable? = null){
           //  content?:       throw IllegalStateException("content is null")
           //  mode?: clr?:    throw IllegalStateException("mode and clr are both null")
-            tabContent.text = content
+            tabContent.setText(content)
             tabContent.background = clr ?: modeColour(mode!!)
         }
         var first = true
-        val gs = App.visibleGSs[posn]
         fun addTab(mode :Int, tabTitle :String, content :String) {
-            val tab = tabs.newTab().setText(tabTitle)
+            val tab = tabLt.newTab().setText(tabTitle)
             val clr = modeColour(mode)
-            tab.tag = TabTag(mode, gs)
+            tab.tag = mode
             tab.view.background = clr
-            tabs.addTab(tab)
-            if (first) {
+            tabLt.addTab(tab)
+            if (content == "")
+                tab.view.visibility = View.GONE
+            else if (first) {
                 first = false
                 setContent(null, content, clr)
             }
         }
-        tabs.removeAllTabs()
-        tabContent.text = ""
+        val gs = App.visibleGSs[posn]
+        tabLt.tag = gs
+        tabLt.removeAllTabs()
+        tabContent.setText("")
         tabContent.background = drawable(android.R.color.white)
+        holder.itemView.tvTitle.setText(gs.name)
+        holder.itemView.general.setText(gs.general)
+        addTab (ONEHOUR,"ONE HOUR", gs.onehour)
+        addTab (LONGER ,"LONGER"  , gs.longer )
+        addTab (ONEDAY ,"ONE DAY" , gs.oneday )
 
-        holder.itemView.tvTitle.text = gs.name
-        holder.itemView.general.text = gs.general
+        val menu = holder.itemView.bot_nav_bar.menu
+        if (gs.email == "") menu.findItem(R.id.email).setVisible(false)
+        if (gs.phone == "") menu.findItem(R.id.phone).setVisible(false)
 
-        gs.onehour?.let{ addTab (ONEHOUR,"ONE HOUR", it) }
-        gs.longer ?.let{ addTab (LONGER ,"LONGER"  , it) }
-        gs.oneday ?.let{ addTab (ONEDAY ,"ONE DAY" , it) }
-
-        val menu = holder.itemView.bot_nav_bar.menu  //mBotNavBar.menu
-        gs.email?: menu.findItem(R.id.email).setVisible(false)
-        gs.phone?: menu.findItem(R.id.phone).setVisible(false)
-
-        tabs.addOnTabSelectedListener (object :TabLayout.OnTabSelectedListener {
+        tabLt.addOnTabSelectedListener (object :TabLayout.OnTabSelectedListener {
             override fun onTabSelected (tab: TabLayout.Tab) {
-                val tt = tab.tag as TabTag
-                when (tt.mode){
-                    ONEHOUR-> setContent (ONEHOUR, tt.gs.onehour)
-                    LONGER -> setContent (LONGER , tt.gs.longer )
-                    ONEDAY -> setContent (ONEDAY , tt.gs.oneday )
+                val gs = tab.parent?.tag as GroupSit //parent is TabLayout
+                val mode = tab.tag as Int
+                when (mode){
+                    ONEHOUR-> setContent (ONEHOUR, gs.onehour)
+                    LONGER -> setContent (LONGER , gs.longer )
+                    ONEDAY -> setContent (ONEDAY , gs.oneday )
                 }
-                log("               changed tab for ${tt.gs.name}")
+                log("               changed tab for ${gs.name}")
              }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -114,8 +106,19 @@ class ViewPagerAdapter
     }
 }
 
-class TabTag (val mode :Int, val gs :GroupSit)
+class TabTag  ( val mode :Int
+              , val gs :GroupSit
+              )
+fun drawable (clrSlctr: Int) = ContextCompat.getDrawable(context, clrSlctr)
+fun colour (clrId: Int)      = ContextCompat.getColor(context, clrId)
 
+fun modeColour(mode: Int) = drawable(
+    when(mode){
+        ONEHOUR-> R.drawable.onehour_tabcolor_selector
+        LONGER -> R.drawable. longer_tabcolor_selector
+        ONEDAY -> R.drawable. oneday_tabcolor_selector
+        else -> throw IllegalStateException("bad index: $mode")
+    })
 
 
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
