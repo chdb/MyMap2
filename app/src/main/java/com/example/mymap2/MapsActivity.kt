@@ -98,12 +98,6 @@ class MapsActivity
     lateinit var mDefMarkerIcon: BitmapDescriptor
     lateinit var mSelMarkerIcon: BitmapDescriptor
     lateinit var mClusterManager: ClusterManager <GroupSit>
-    lateinit var mHandler :Handler
-    lateinit var mCheckGSCount :Runnable
-    val delay :Long = 60 // start mCheckGSCount() after <delay> milliseconds
-    private fun startRunner() = mHandler.postDelayed (mCheckGSCount, delay)
-    private fun stopRunner()  = mHandler.removeCallbacks (mCheckGSCount)
-    //var mSelMarker: Marker? = null
 
     override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -115,19 +109,13 @@ class MapsActivity
         mDefMarkerIcon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)
         mSelMarkerIcon = BitmapDescriptorFactory.defaultMarker()
         initViewPager()
-        // To find unclustered GSs, we put code in onClusterItemRendered() and onClusterRendered() but we also need
-        // to count the calls and monitor the count with a handler, in order know when all calls have finished.
-        //todo: do we really need this? - why not just put this line in onClusterItemRendered() and onClusterRendered()
-        //       if (mCountGSs == App.allGroupSittings.size)   setVisibleGSs(true)
-        mHandler = Handler()
-        mCheckGSCount = Runnable {
-            if (mCountGSs == App.allGroupSittings.size) {
-                stopRunner()
-                setVisibleGSs(true)
-            }
-            else startRunner() //try again after delay
-        }
         log("onCreate  end")
+    }
+    // To find unclustered GSs, we put code in onClusterItemRendered() and onClusterRendered()
+    private fun setVisibleGSsWhenDone() {
+        mCountGSs--
+        if (mCountGSs <= 0)
+            setVisibleGSs(true)
     }
 
     override fun onMapLoaded() {
@@ -138,10 +126,10 @@ class MapsActivity
 
         var lastZoom :Float? = null
         mMap.setOnCameraIdleListener {
-            mCountGSs = 0
-            log("..")
+            mCountGSs = App.allGroupSittings.size
+        log("..")
             log("XXXXXXXXXXXXXXXXXX    cam idle  n = $mCountGSs")
-            startRunner()
+           // startRunner()
 
             val zoom = mMap.cameraPosition.zoom
             if (lastZoom != zoom) {
@@ -259,6 +247,8 @@ class MapsActivity
             }
         }
     }
+
+    //todo: adjust(true) needs adjusting - top and bottom bounds are both too far north.
     private fun adjustForVwPager (bounds: LatLngBounds, reduce :Boolean) :LatLngBounds {
         val neLat = bounds.northeast.latitude
         val neLng = bounds.northeast.longitude
@@ -290,7 +280,7 @@ class MapsActivity
         val t = (dLat + 2*s) * extraHt / targetHt + s
         return LatLngBounds( LatLng(swLat - t - p, swLng)
                            , LatLng(neLat + s + p, neLng))
-}
+    }
 
     // Manipulates the map once available. If Google Play services is not installed on the device, the user will be prompted to install it
     // inside the SupportMapFragment. This method will then be triggered once the user has installed Google Play services and returned to the app.
@@ -341,7 +331,7 @@ class MapsActivity
     }
     lateinit var mRenderer :CustomClusterRenderer
     var mMapLoaded = false
-    var mCountGSs = 0
+    var mCountGSs =  App.allGroupSittings.size
     val mMinClusterSize = 3
     private var mFreeGSs = listOf<GroupSit>() // Free Groups Sits, sorted by longitude, latitude
     // "Free" is our term for all items "not rendered as clusters" (in the terms of the library)
@@ -350,10 +340,6 @@ class MapsActivity
     // Renderer.shouldRenderAsCluster() decides which of these "Cluster"s actually remain as "free" markers.
     // Also confusingly, all items are called "Cluster Items", whether or not they are (rendered as) clustered
 
-//    private fun initSubListIdx () {
-//        var n = 0
-//        App.visibleGSs.forEach { it.idx = n++ }
-//    }
 
     private fun setVisibleGSs (newClusters :Boolean) { //(clusters: MutableSet<out Cluster<GroupSit>>? = null) {
         val newBounds = adjustForVwPager(mMap.projection.visibleRegion.latLngBounds, true)
@@ -385,7 +371,6 @@ class MapsActivity
         if (newSelGSIdx > 0)
             vwPager.currentItem = newSelGSIdx
 
-       // initSubListIdx()
         setSelectedGs(newSelGSIdx)
     }
 
@@ -467,29 +452,29 @@ class MapsActivity
         }
         override fun onClusterItemRendered(gs: GroupSit?, marker: Marker?) {
             //These items are NOT in a cluster
+            super.onClusterItemRendered(gs, marker)
             if (gs != null) {
                 check (marker != null)
-                mCountGSs++
                 gs.mkr = marker
                 marker.tag = gs
                 if (gs == mSelectedGS) {
                     marker.showInfoWindow()
                 }
-              //  log("CCR item rendered: ${gs.id}")
+                setVisibleGSsWhenDone()
+                //  log("CCR item rendered: ${gs.id}")
 //                mAct.mFreeGSs.add(gs)
             }
-            super.onClusterItemRendered(gs, marker)
         }
         override fun onClusterRendered(cluster: Cluster<GroupSit>?, marker: Marker?) {
             //These items ARE in a cluster
+            super.onClusterRendered(cluster, marker)
             if (cluster != null) {
                 for (gs in cluster.items) {
-                    mCountGSs++
                 //    log("CCR cluster rendered for gs: ${gs.id}")
                     gs.mkr = null
+                    setVisibleGSsWhenDone()
                 }
             }
-            super.onClusterRendered(cluster, marker)
         }
     }
 

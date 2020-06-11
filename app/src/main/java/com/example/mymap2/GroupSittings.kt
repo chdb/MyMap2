@@ -44,7 +44,7 @@ data class GroupSit ( val id      :Int
         val dBit = if (oneday  != "") ONEDAY_BIT  else 0
         val modeSet = hBit or lBit or dBit
         require(modeSet != 0)  {"GS must have at least one of the 3 modes (onehour, longer, oneday)"}
-        require(phone!="" || email!="") {"GS must have at least one contact point (phone, email)"}
+      //  require(phone!="" || email!="") {"GS must have at least one contact point (phone, email)"}
     }
     override fun getPosition() = locn
     override fun getTitle() = null
@@ -226,10 +226,12 @@ abstract class App {
             , GroupSit( 100
                 ,"GS Ireland"
                 , LatLng(51.44, -10.11)
+                ,"I"
             )
             , GroupSit( 200
                 ,"GS Germany"
                 , LatLng(51.44, 10.11)
+                ,"G"
             )
         )
     }
