@@ -35,8 +35,6 @@ data class GroupSit ( val id      :Int
                     , val phone   :String = ""
                     , val email   :String = ""
                     , var mkr     :Marker? = null
-                    , var idx     :Int = -1
-                    , var modeSet :Int = 0
 )   : ClusterItem
     , Comparable <GroupSit>
 {
@@ -44,9 +42,9 @@ data class GroupSit ( val id      :Int
         val hBit = if (onehour != "") ONEHOUR_BIT else 0
         val lBit = if (longer  != "") LONGER_BIT  else 0
         val dBit = if (oneday  != "") ONEDAY_BIT  else 0
-        modeSet = hBit or lBit or dBit
-  //      require(modeSet != 0)  {"GS must have at least one of the 3 modes (onehour, longer, oneday)"}
-       // require(phone!=null || email!=null) {"GS must have at least one contact point (phone, email)"}
+        val modeSet = hBit or lBit or dBit
+        require(modeSet != 0)  {"GS must have at least one of the 3 modes (onehour, longer, oneday)"}
+        require(phone!="" || email!="") {"GS must have at least one contact point (phone, email)"}
     }
     override fun getPosition() = locn
     override fun getTitle() = null

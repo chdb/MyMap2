@@ -156,10 +156,6 @@ class MapsActivity
         }
     }
 
-//
-//        todo replace groupSit idx with index()
-//
-
     fun onClickEdit (editBtn: View){
         val linLt = editBtn.parent.parent as LinearLayout
         val relLt = linLt.parent.parent.parent as RelativeLayout
@@ -327,12 +323,14 @@ class MapsActivity
             mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
             true
         }
-        mClusterManager.setOnClusterItemClickListener {
+        mClusterManager.setOnClusterItemClickListener { // NB this means a free GS was clicked - NOT a cluster!
             log("free item clicked")
-            vwPager.currentItem = it.idx
+            val idx = App.visibleGSs.indexOf(it)
+
+            vwPager.currentItem = idx //it.idx
             val lastMarker = mRenderer.getMarker(mSelectedGS)
             log ("selected marker = $lastMarker")
-            setSelectedGs(it.idx)
+            setSelectedGs(idx) //(it.idx)
             //mRenderer.getMarker(it)?.showInfoWindow()
             true
         }
@@ -352,10 +350,10 @@ class MapsActivity
     // Renderer.shouldRenderAsCluster() decides which of these "Cluster"s actually remain as "free" markers.
     // Also confusingly, all items are called "Cluster Items", whether or not they are (rendered as) clustered
 
-    private fun initSubListIdx () {
-        var n = 0
-        App.visibleGSs.forEach { it.idx = n++ }
-    }
+//    private fun initSubListIdx () {
+//        var n = 0
+//        App.visibleGSs.forEach { it.idx = n++ }
+//    }
 
     private fun setVisibleGSs (newClusters :Boolean) { //(clusters: MutableSet<out Cluster<GroupSit>>? = null) {
         val newBounds = adjustForVwPager(mMap.projection.visibleRegion.latLngBounds, true)
@@ -387,7 +385,7 @@ class MapsActivity
         if (newSelGSIdx > 0)
             vwPager.currentItem = newSelGSIdx
 
-        initSubListIdx()
+       // initSubListIdx()
         setSelectedGs(newSelGSIdx)
     }
 
@@ -473,9 +471,9 @@ class MapsActivity
                 check (marker != null)
                 mCountGSs++
                 gs.mkr = marker
-                marker?.tag = gs
+                marker.tag = gs
                 if (gs == mSelectedGS) {
-                    marker?.showInfoWindow()
+                    marker.showInfoWindow()
                 }
               //  log("CCR item rendered: ${gs.id}")
 //                mAct.mFreeGSs.add(gs)
