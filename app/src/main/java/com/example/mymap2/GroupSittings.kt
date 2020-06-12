@@ -51,12 +51,12 @@ data class GroupSit ( val id      :Int
     override fun getSnippet() = name
     override fun equals(other: Any?) = (other is GroupSit) && id == other.id
     override fun compareTo(other: GroupSit): Int {
-        val d =  locn.longitude - other.locn.longitude
-        if (d != 0.0)
-            return if (d > 0.0) 1 else -1
-        val e =  locn.latitude - other.locn.latitude
-        if (e != 0.0)
-            return if (e > 0.0) 1 else -1
+        val dLng =  locn.longitude - other.locn.longitude
+        if (dLng != 0.0)
+            return if (dLng > 0.0) 1 else -1
+        val dLat =  locn.latitude - other.locn.latitude
+        if (dLat != 0.0)
+            return if (dLat > 0.0) 1 else -1
         check (this == other) // Two different GroupSit's cannot have the same location.
         return 0
     }
@@ -144,7 +144,7 @@ abstract class App {
                      "      and every Thursday:     9 am – 12 noon"
                 , "We Never Cancel!  Cushions provided."
                 , "07960 130 587"
-                , "vipassana_hackney@gmail.com"
+                , "vipassana.hackney@gmail.com"
             )
             , GroupSit( 71
                 ,"London, Bloomsbury"

@@ -1,26 +1,34 @@
 package com.example.mymap2
 
 
+import android.accounts.AccountManager
+
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.util.Log
-import android.view.*
+import android.util.Patterns
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mymap2.App.Companion.context
 import com.google.android.material.tabs.TabLayout
 import kotlinx.android.synthetic.main.activity_maps.*
+import kotlinx.android.synthetic.main.view_pager.*
 import kotlinx.android.synthetic.main.view_pager.view.*
+import org.intellij.lang.annotations.Pattern
 import android.view.inputmethod.InputMethodManager as InputMethodManager_
 import com.google.android.material.tabs.TabLayout as TabLayout_
 
 
 class ViewPagerAdapter
-    ( val mMapAct :MapsActivity
-    )
+    ( val mMapAct: MapsActivity )
     : RecyclerView.Adapter <ViewPagerAdapter.VpvHolder>()  // VpvHolder := ViewPagerViewHolder
 {
    // private lateinit var mBotNavBar: BottomNavigationView
@@ -32,10 +40,10 @@ class ViewPagerAdapter
         vw.bot_nav_bar.setOnNavigationItemSelectedListener { item ->
             mMapAct.mSelectedGS?.run{
                 when (item.itemId) {
-                    R.id.email      -> composeEmail(mMapAct)
-                    R.id.chat       -> sendSms(mMapAct)
-                    R.id.subscribe  -> share()
-                    R.id.phone      -> makePhonecall(mMapAct)
+                    R.id.email -> composeEmail(mMapAct)
+                    R.id.chat -> sendSms(mMapAct)
+                    R.id.subscribe -> share()
+                    R.id.phone -> makePhonecall(mMapAct)
                     R.id.directions -> getDirections(mMapAct)
                 }
             }
@@ -57,14 +65,14 @@ class ViewPagerAdapter
         val tabLt = holder.itemView.tabLt
         val tabContent = holder.itemView.tabContent
 
-        fun setContent(mode :Int?, content :String?, clr :Drawable? = null){
+        fun setContent(mode: Int?, content: String?, clr: Drawable? = null) {
           //  content?:       throw IllegalStateException("content is null")
           //  mode?: clr?:    throw IllegalStateException("mode and clr are both null")
             tabContent.setText(content)
             tabContent.background = clr ?: modeColour(mode!!)
         }
         var first = true
-        fun addTab(mode :Int, tabTitle :String, content :String) {
+        fun addTab(mode: Int, tabTitle: String, content: String) {
             val tab = tabLt.newTab().setText(tabTitle)
             val clr = modeColour(mode)
             tab.view.background = clr
@@ -91,14 +99,15 @@ class ViewPagerAdapter
         if (gs.email == "") menu.findItem(R.id.email).setVisible(false)
         if (gs.phone == "") menu.findItem(R.id.phone).setVisible(false)
 
+        //if (authenticated(gs)) {
+        val linLt = tabLt.parent as LinearLayout
+        val edit = linLt.findViewById<ImageButton>(R.id.editBtn)
+        edit.visibility = visible(authenticated(gs))
+       // }
+
         tabLt.addOnTabSelectedListener (object :TabLayout.OnTabSelectedListener {
-            override fun onTabSelected (tab: TabLayout.Tab) {
+            override fun onTabSelected(tab: TabLayout.Tab) {
                 val gs = tab.parent?.tag as GroupSit //parent is TabLayout
-//                when (tab.position){
-//                    ONEHOUR-> setContent (ONEHOUR, gs.onehour)
-//                    LONGER -> setContent (LONGER , gs.longer )
-//                    ONEDAY -> setContent (ONEDAY , gs.oneday )
-//                }
                 val mode = tab.position
                 setContent(mode, modeContent(mode, gs))
                 log("               changed tab for ${gs.name}")
@@ -108,21 +117,41 @@ class ViewPagerAdapter
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
     }
+
+    private fun authenticated (gs :GroupSit) :Boolean {
+        // whether there is an email account registered on this device which matches the GroupSit email
+        val acMgr = AccountManager.get(mMapAct)
+        val accounts = acMgr.getAccountsByType("com.google")
+        log("accounts  = ${accounts.size}")
+        val acts = acMgr.accounts
+        for (ac in acts)
+            log("account1: ${ac.name}")
+        val acts2 = mMapAct.mPermissionMgr.mAccounts
+        for (ac in acts2)
+            log("mAccount: ${ac.name}")
+        for (ac in accounts) {
+            log("account3: ${ac.name}")
+            if (gs.email == ac.name)
+                return true
+        }
+        return false
+    }
 }
 
+fun visible(b: Boolean) = if (b) View.VISIBLE else View.GONE
 
-fun drawable (clrSlctr: Int) = ContextCompat.getDrawable(context, clrSlctr)
-fun colour (clrId: Int)      = ContextCompat.getColor(context, clrId)
+fun drawable(clrSlctr: Int) = ContextCompat.getDrawable(context, clrSlctr)
+fun colour(clrId: Int)      = ContextCompat.getColor(context, clrId)
 
 fun modeColour(mode: Int) = drawable(
     when(mode){
         ONEHOUR-> R.drawable.onehour_tabcolor_selector
-        LONGER -> R.drawable. longer_tabcolor_selector
-        ONEDAY -> R.drawable. oneday_tabcolor_selector
+        LONGER -> R.drawable.longer_tabcolor_selector
+        ONEDAY -> R.drawable.oneday_tabcolor_selector
         else -> throw IllegalStateException("bad index: $mode")
     })
 
-fun modeContent (mode: Int, gs :GroupSit) =
+fun modeContent(mode: Int, gs: GroupSit) =
     when(mode){
         ONEHOUR-> gs.onehour
         LONGER -> gs.longer
@@ -134,7 +163,8 @@ fun modeContent (mode: Int, gs :GroupSit) =
 class GroupSitEditor
     (val mMapAct: MapsActivity)
 {
-    fun onClickEdit (editBtn: View){
+
+    fun onClickEdit(editBtn: View){
         val linLt = editBtn.parent.parent as LinearLayout
         val relLt = linLt.parent.parent.parent as RelativeLayout
         val doneBtn   = relLt.findViewById<ImageButton>(R.id.done)
@@ -154,11 +184,12 @@ class GroupSitEditor
         setEditMode (linLt, editBtn, cancelBtn, doneBtn, false)
     }
 
-    private fun setEditMode(linLt: View,
-                            editBtn: View,
-                            cancelBtn: View,
-                            doneBtn: View,
-                            bEdit: Boolean
+    private fun setEditMode(
+        linLt: View,
+        editBtn: View,
+        cancelBtn: View,
+        doneBtn: View,
+        bEdit: Boolean
     ) :EditText {
         mMapAct.vwPager.isUserInputEnabled = !bEdit
         mMapAct.mMap.uiSettings.setAllGesturesEnabled(!bEdit)
@@ -199,7 +230,6 @@ class GroupSitEditor
             imm.hideSoftInputFromWindow(view.windowToken, 0);
     }
 
-    private fun visible(b: Boolean) = if (b) View.VISIBLE else View.GONE
 
 }
 
@@ -215,4 +245,4 @@ fun toast(msg: String) {
     t.show()
 }
 
-fun log (s :String) { Log.i("mymap2 xxx", s) }
+fun log(s: String) { Log.i("mymap2 xxx", s) }

@@ -1,24 +1,24 @@
 package com.example.mymap2
 
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.maps.GoogleMap
 import android.Manifest
+import android.accounts.Account
+import android.accounts.AccountManager
+import android.content.Intent
 import android.location.Location
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
 
 
-class Locn
+class PermissionMgr
     (val mMapAct :MapsActivity)
 {
+    var mAccounts = arrayOf<Account>()
 
     var mLocnPmn = false
     var mLastLocn : Location? = null
@@ -26,21 +26,43 @@ class Locn
 
     private val DEFAULT_Locn = LatLng( 42.125, 55.123 )
     private val FINE_LOCN_Code = 1
+    private val ACCOUNTS_Code = 42
     private val DEFAULT_Zoom = 10f
     val GRANTED = PackageManager.PERMISSION_GRANTED
     val FINE_LOCN_Pmn = Manifest.permission.ACCESS_FINE_LOCATION
+    val ACCOUNTS_Pmn  = Manifest.permission.GET_ACCOUNTS
 
+    @RequiresApi(Build.VERSION_CODES.M)
     fun update() {
         updateLocationUI()
         getDeviceLocation()
+     //   getAccountPmn()
     }
 
     private fun getLocationPermission() {
-        val pmn = ContextCompat.checkSelfPermission (mMapAct.applicationContext, FINE_LOCN_Pmn)
-        if (pmn == GRANTED)
-            mLocnPmn = true
-        else
+        if (needPermisssion(FINE_LOCN_Pmn))
             ActivityCompat.requestPermissions (mMapAct, arrayOf(FINE_LOCN_Pmn), FINE_LOCN_Code)
+        else
+           mLocnPmn = true
+    }
+
+    private fun needPermisssion (pmn :String) = ContextCompat.checkSelfPermission (mMapAct.applicationContext, pmn) != GRANTED
+
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun getAccountPmn() {
+        if (needPermisssion(ACCOUNTS_Pmn)) {
+            val intent = AccountManager.newChooseAccountIntent(
+                null,
+                null,
+                arrayOf("com.google"),
+                null,
+                null,
+                null,
+                null
+            )
+            mMapAct.startActivityForResult (intent, ACCOUNTS_Code)
+        }
     }
 
     fun onRequestPermissionsResult (requestCode: Int, permissions: Array<String>, results: IntArray) {
@@ -48,6 +70,13 @@ class Locn
         if (requestCode == FINE_LOCN_Code)
             mLocnPmn = (results.isNotEmpty() && (results[0] == GRANTED)) // If request is cancelled, the results array is empty.
         updateLocationUI()
+    }
+
+    fun onActivityResult (requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == ACCOUNTS_Code) {
+            val accountManager = AccountManager.get(mMapAct)
+            mAccounts = accountManager.getAccountsByType("com.google")
+        }
     }
 
     private fun updateLocationUI() {
@@ -89,7 +118,6 @@ class Locn
             log("Exception: ${e.message}")
         }
     }
-
 
 }
 //interface LocnListener {

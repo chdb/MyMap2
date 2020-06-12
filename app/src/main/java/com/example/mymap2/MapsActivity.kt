@@ -6,9 +6,12 @@ package com.example.mymap2
 
 //import android.R
 
+import android.content.Intent
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.marginBottom
 import androidx.recyclerview.widget.RecyclerView
@@ -96,9 +99,10 @@ class MapsActivity
     lateinit var mDefMarkerIcon: BitmapDescriptor
     lateinit var mSelMarkerIcon: BitmapDescriptor
     lateinit var mClusterMgr: ClusterManager <GroupSit>
-    private var mLocationMgr = Locn (this)
+    var mPermissionMgr = PermissionMgr (this)
     private val mGroupSitEd = GroupSitEditor(this)
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
@@ -109,8 +113,13 @@ class MapsActivity
         mDefMarkerIcon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)
         mSelMarkerIcon = BitmapDescriptorFactory.defaultMarker()
         initViewPager()
+
+        mPermissionMgr.getAccountPmn()
         log("onCreate  end")
+
     }
+
+
     // To find unclustered GSs, we put code in onClusterItemRendered() and onClusterRendered()
     private fun setVisibleGSsWhenDone() {
         mCountGSs--
@@ -145,8 +154,14 @@ class MapsActivity
     }
 
     override fun onRequestPermissionsResult (requestCode: Int, permissions: Array<String>, results: IntArray) {
-        mLocationMgr.onRequestPermissionsResult (requestCode, permissions, results)
+        mPermissionMgr.onRequestPermissionsResult (requestCode, permissions, results)
     }
+
+    override fun onActivityResult (requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        mPermissionMgr.onActivityResult (requestCode, resultCode, data)
+    }
+
 
 
     fun onClickEdit(editBtn: View){
@@ -227,6 +242,7 @@ class MapsActivity
 
     // Manipulates the map once available. If Google Play services is not installed on the device, the user will be prompted to install it
     // inside the SupportMapFragment. This method will then be triggered once the user has installed Google Play services and returned to the app.
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.setOnMapLoadedCallback(this)
@@ -270,8 +286,7 @@ class MapsActivity
 
         mClusterMgr.renderer = CustomClusterRenderer(this, mMap, mClusterMgr)
         mClusterMgr.renderer.setAnimation(true)
-
-        mLocationMgr.update()
+        mPermissionMgr.update()
     }
 
     var mMapLoaded = false
