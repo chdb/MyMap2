@@ -5,12 +5,10 @@ package com.example.mymap2
 //import com.google.maps.android.clustering.algo
 
 //import android.R
-import android.content.Context
+
 import android.graphics.Rect
 import android.os.Bundle
-import android.os.Handler
 import android.view.View
-import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.marginBottom
 import androidx.recyclerview.widget.RecyclerView
@@ -26,8 +24,7 @@ import com.google.maps.android.clustering.view.DefaultClusterRenderer
 import kotlinx.android.synthetic.main.activity_maps.*
 import kotlin.math.abs
 import kotlin.math.cos
-import android.view.inputmethod.InputMethodManager as InputMethodManager_
-import com.google.android.material.tabs.TabLayout as TabLayout_
+
 
 
 // Adds margin to the left and right sides of the RecyclerView item.
@@ -41,13 +38,14 @@ class HMarginItemDecoration
     }
 }
 
+
 class MapsActivity
     : AppCompatActivity()
     , OnMapReadyCallback
     , GoogleMap.OnMapLoadedCallback
     //, OnTabSelectedListener
 {
-    private lateinit var mMap: GoogleMap
+    lateinit var mMap: GoogleMap
 
 //    override fun onUserInteraction() {
 //        log("\nOn User interaction\n")
@@ -97,9 +95,11 @@ class MapsActivity
 
     lateinit var mDefMarkerIcon: BitmapDescriptor
     lateinit var mSelMarkerIcon: BitmapDescriptor
-    lateinit var mClusterManager: ClusterManager <GroupSit>
+    lateinit var mClusterMgr: ClusterManager <GroupSit>
+    private var mLocationMgr = Locn (this)
+    private val mGroupSitEd = GroupSitEditor(this)
 
-    override fun onCreate (savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -122,12 +122,12 @@ class MapsActivity
         log("mapLoaded ")
         mMapLoaded = true
         val gs0 = App.allGroupSittings[8] //todo for testing only  -  use current location
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(gs0.locn, 10f))
+        mMap.animateCamera( CameraUpdateFactory.newLatLngZoom (gs0.locn, 10f))
 
         var lastZoom :Float? = null
         mMap.setOnCameraIdleListener {
             mCountGSs = App.allGroupSittings.size
-        log("..")
+            log("..")
             log("XXXXXXXXXXXXXXXXXX    cam idle  n = $mCountGSs")
            // startRunner()
 
@@ -135,7 +135,7 @@ class MapsActivity
             if (lastZoom != zoom) {
                 lastZoom = zoom
                 log("zoom  - onCameraIdle() calls cluster()")
-                mClusterManager.cluster()
+                mClusterMgr.cluster()
             } else {
                 log("no zoom - onCameraIdle() calls setSubList()")
                 setVisibleGSs(false)
@@ -144,84 +144,27 @@ class MapsActivity
         }
     }
 
-    fun onClickEdit (editBtn: View){
-        val linLt = editBtn.parent.parent as LinearLayout
-        val relLt = linLt.parent.parent.parent as RelativeLayout
-        val doneBtn   = relLt.findViewById<ImageButton>(R.id.done)
-        val cancelBtn = relLt.findViewById<ImageButton>(R.id.cancel)
-        val edTxt = setEditMode (linLt, editBtn, doneBtn, cancelBtn, true)
-        vwPager.tag = linLt
-        edTxt.requestFocus()
-        edTxt.setSelection(edTxt.text.length)
+    override fun onRequestPermissionsResult (requestCode: Int, permissions: Array<String>, results: IntArray) {
+        mLocationMgr.onRequestPermissionsResult (requestCode, permissions, results)
     }
 
-    fun onClickEditDone (doneBtn: View){
+
+    fun onClickEdit(editBtn: View){
+        mGroupSitEd.onClickEdit (editBtn)
+    }
+
+    fun onClickEditDone(doneBtn: View){
         //todo: Save changes
-        doneOrCancel (doneBtn, true)
+        mGroupSitEd.doneOrCancel (doneBtn, true)
     }
 
-    fun onClickEditCancel (cancelBtn: View) {
-        doneOrCancel (cancelBtn, false)
+    fun onClickEditCancel(cancelBtn: View) {
+        mGroupSitEd.doneOrCancel (cancelBtn, false)
     }
-
-    private fun doneOrCancel(btn: View, bDoneBtn :Boolean) {
-        val relLt = btn.parent as RelativeLayout
-        val doneBtn   = if ( bDoneBtn) btn else relLt.findViewById<ImageButton>(R.id.done)
-        val cancelBtn = if (!bDoneBtn) btn else relLt.findViewById<ImageButton>(R.id.cancel)
-        val linLt = vwPager.tag as View
-        val editBtn = linLt.findViewById<ImageButton>(R.id.editBtn)
-        setEditMode (linLt, editBtn, cancelBtn, doneBtn, false)
-    }
-
-    private fun setEditMode (linLt: View, editBtn: View, cancelBtn: View, doneBtn: View, bEdit :Boolean) :EditText {
-        vwPager.isUserInputEnabled = !bEdit
-        editBtn  .visibility = visible(!bEdit)
-        cancelBtn.visibility = visible (bEdit)
-        doneBtn  .visibility = visible (bEdit)
-        val edTxt = linLt.findViewById<EditText>(R.id.tvTitle)
-        edTxt.isEnabled = bEdit
-        linLt.findViewById<EditText>(R.id.tabContent).isEnabled = bEdit
-        linLt.findViewById<EditText>(R.id.general)   .isEnabled = bEdit
-        linLt.background = if (bEdit) drawable(R.drawable.rounded_corner_2)
-                           else       drawable(R.drawable.rounded_corner)
-
-        val tabLt = linLt.findViewById(R.id.tabLt) as TabLayout_
-        val gs = tabLt.tag as GroupSit
-        for (i in tabLt.tabCount-1 downTo 0) {
-            val tab = tabLt.getTabAt(i)
-            val empty = (when (i) {
-                            ONEHOUR-> gs.onehour
-                            LONGER -> gs.longer
-                            ONEDAY -> gs.oneday
-                            else   -> throw IllegalStateException("bad index: $i")
-                        } == "" )
-            if (empty) {
-                tab?.view?.visibility = visible(bEdit) // show/hide empty tabs
-                // if selected tab is empty, but now set to GONE, needs to select a non empty tag instead
-                if (!bEdit && tabLt.selectedTabPosition == i) {
-                    val i2 = if (i > 0) i - 1 else tabLt.tabCount - 1
-                    tabLt.selectTab(tabLt.getTabAt(i2))
-                }
-            }
-        }
-        showKeyboard(bEdit, edTxt)
-        return edTxt
-    }
-
-    private fun showKeyboard (bShow :Boolean, view: View){
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager_
-        //imm.toggleSoftInput(InputMethodManager1.SHOW_FORCED, InputMethodManager1.HIDE_IMPLICIT_ONLY)
-        if (bShow)
-            imm.showSoftInput(view, InputMethodManager_.SHOW_IMPLICIT);
-        else
-            imm.hideSoftInputFromWindow(view.windowToken, 0);
-    }
-
-    private fun visible (b :Boolean) = if (b) View.VISIBLE else View.GONE
 
     var mSelectedGS :GroupSit? = null
 
-    private fun setSelectedGs (idx: Int) {
+    private fun setSelectedGs(idx: Int) {
         if (App.visibleGSs.isNotEmpty()){
             val idx2 = if (idx == -1) 0 else idx
             //assert (idx < App.visGroupSittings.size )
@@ -249,7 +192,7 @@ class MapsActivity
     }
 
     //todo: adjust(true) needs adjusting - top and bottom bounds are both too far north.
-    private fun adjustForVwPager (bounds: LatLngBounds, reduce :Boolean) :LatLngBounds {
+    private fun adjustForVwPager(bounds: LatLngBounds, reduce: Boolean) :LatLngBounds {
         val neLat = bounds.northeast.latitude
         val neLng = bounds.northeast.longitude
         val swLat = bounds.southwest.latitude
@@ -288,8 +231,8 @@ class MapsActivity
         mMap = googleMap
         mMap.setOnMapLoadedCallback(this)
   //      googleMap.uiSettings.isZoomControlsEnabled = true
-        mClusterManager = ClusterManager<GroupSit>(this, googleMap)
-        mClusterManager.addItems(App.allGroupSittings) // 4
+        mClusterMgr = ClusterManager<GroupSit>(this, googleMap)
+        mClusterMgr.addItems(App.allGroupSittings) // 4
         log("onMapReady")
         //todo: under the default algorithm, cluster() calculates the clustering for the entire world, at current zoom level.
         // For a larger data set we will probably need a more focused algorithm
@@ -300,9 +243,9 @@ class MapsActivity
         //             mClusterManager.algorithm = NonHierarchicalViewBasedAlgorithm (width, height)
         // Alternatively - other cluster libraries ???
 
-        mMap.setOnMarkerClickListener(mClusterManager)
+        mMap.setOnMarkerClickListener(mClusterMgr)
 
-        mClusterManager.setOnClusterClickListener {
+        mClusterMgr.setOnClusterClickListener {
             log("cluster clicked")
             val builder = LatLngBounds.builder()
             for (item in it.items) { // each item in the clicked cluster
@@ -313,35 +256,37 @@ class MapsActivity
             mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
             true
         }
-        mClusterManager.setOnClusterItemClickListener { // NB this means a free GS was clicked - NOT a cluster!
+        mClusterMgr.setOnClusterItemClickListener { // NB this means a free GS was clicked - NOT a cluster!
             log("free item clicked")
             val idx = App.visibleGSs.indexOf(it)
 
             vwPager.currentItem = idx //it.idx
-            val lastMarker = mRenderer.getMarker(mSelectedGS)
-            log ("selected marker = $lastMarker")
+            //val lastMarker = mRenderer.getMarker(mSelectedGS)
+            //log ("selected marker = $lastMarker")
             setSelectedGs(idx) //(it.idx)
             //mRenderer.getMarker(it)?.showInfoWindow()
             true
         }
-        mRenderer = CustomClusterRenderer(this, mMap, mClusterManager)
-        mRenderer.setAnimation(true)
-        mClusterManager.renderer = mRenderer
-//        mClusterManager.renderer = CustomClusterRenderer(this, mMap, mClusterManager)
+
+        mClusterMgr.renderer = CustomClusterRenderer(this, mMap, mClusterMgr)
+        mClusterMgr.renderer.setAnimation(true)
+
+        mLocationMgr.update()
     }
-    lateinit var mRenderer :CustomClusterRenderer
+
     var mMapLoaded = false
     var mCountGSs =  App.allGroupSittings.size
     val mMinClusterSize = 3
     private var mFreeGSs = listOf<GroupSit>() // Free Groups Sits, sorted by longitude, latitude
     // "Free" is our term for all items "not rendered as clusters" (in the terms of the library)
-    // The Clustering algorithm sorts all GSs into what it confusingly calls "CLUSTERS", even though
-    // the job is only to put some "close enough" items into clusters. (Not all items are "RENDERED AS clusters")
+    // The Clustering algorithm sorts ALL GSs into what it confusingly calls "Clusters", even though
+    // the job is only to put some of them, those "close enough", into visible (rendered) clusters.
+    // (All items are in "Clusters" but NOT all items are "RENDERED AS Clusters")
     // Renderer.shouldRenderAsCluster() decides which of these "Cluster"s actually remain as "free" markers.
-    // Also confusingly, all items are called "Cluster Items", whether or not they are (rendered as) clustered
+    // And so for this library, all items are "Cluster Items", whether or not they are (rendered as) clustered
 
 
-    private fun setVisibleGSs (newClusters :Boolean) { //(clusters: MutableSet<out Cluster<GroupSit>>? = null) {
+    private fun setVisibleGSs(newClusters: Boolean) { //(clusters: MutableSet<out Cluster<GroupSit>>? = null) {
         val newBounds = adjustForVwPager(mMap.projection.visibleRegion.latLngBounds, true)
         log("bounds = $newBounds")
         if (newClusters) {
@@ -365,7 +310,7 @@ class MapsActivity
         newVisibles.forEachIndexed { n, gs -> log("newSubList $n  ${gs.name}") }
 
         val newSelGSIdx = newVisibles.indexOf(mSelectedGS)
-        log("new idx =  $newSelGSIdx")
+        log("new idx = $newSelGSIdx")
         updateVwPager(newVisibles)
 
         if (newSelGSIdx > 0)
@@ -374,7 +319,8 @@ class MapsActivity
         setSelectedGs(newSelGSIdx)
     }
 
-    private fun updateVwPager (newVisibles: List<GroupSit>) {
+
+    private fun updateVwPager(newVisibles: List<GroupSit>) {
         val oldVisibles = App.visibleGSs
         App.visibleGSs = newVisibles
 
@@ -435,9 +381,8 @@ class MapsActivity
         }
     }
 
-    inner class CustomClusterRenderer( context       :MapsActivity
-                                     , map           :GoogleMap?
-                                     , clusterManager:ClusterManager<GroupSit>
+    inner class CustomClusterRenderer(
+        context: MapsActivity, map: GoogleMap?, clusterManager: ClusterManager<GroupSit>
     ) : DefaultClusterRenderer<GroupSit> (context, map, clusterManager) {
 
         override fun shouldRenderAsCluster(cluster: Cluster<GroupSit>?): Boolean =
