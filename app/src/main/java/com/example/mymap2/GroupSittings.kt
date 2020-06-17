@@ -25,20 +25,22 @@ const val ONEDAY_BIT  = 4
 
 //typealias GSModes = EnumSet<GSMode>
 
-data class GroupSit ( val id      :Int
-                    , val name    :String
-                    , val locn    :LatLng
-                    , val onehour :String = ""
-                    , val oneday  :String = ""
-                    , val longer  :String = ""
-                    , val general :String = ""
-                    , val phone   :String = ""
-                    , val email   :String = ""
+class GroupSit ( val id      :Int
+                    , var name    :String
+                    , var locn    :LatLng
+                    , onehour :String = ""
+                    , oneday  :String = ""
+                    , longer  :String = ""
+                    , var general :String = ""
+                    , var phone   :String = ""
+                    , var email   :String = ""
                     , var mkr     :Marker? = null
 )   : ClusterItem
     , Comparable <GroupSit>
 {
+    val text = arrayOf<String>(onehour, longer, oneday)
     init {
+
         val hBit = if (onehour != "") ONEHOUR_BIT else 0
         val lBit = if (longer  != "") LONGER_BIT  else 0
         val dBit = if (oneday  != "") ONEDAY_BIT  else 0
@@ -112,6 +114,10 @@ data class GroupSit ( val id      :Int
             }
             , "Send an email to the Group Sitting Host"
         )}
+
+    override fun hashCode(): Int {
+        return id
+    }
 }
 
 abstract class App {

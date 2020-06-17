@@ -1,22 +1,27 @@
 package com.example.mymap2
 
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
-import com.google.android.gms.location.FusedLocationProviderClient
 import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountManager
+import android.app.Activity
+import android.app.PendingIntent
 import android.content.Intent
+import android.content.IntentSender.SendIntentException
+import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
+import androidx.core.app.ActivityCompat.startIntentSenderForResult
 import androidx.core.content.ContextCompat
+import com.google.android.gms.auth.api.credentials.*
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
 
 
 class PermissionMgr
-    (val mMapAct :MapsActivity)
+    (val mMapAct: MapsActivity)
 {
     var mAccounts = arrayOf<Account>()
 
@@ -46,16 +51,87 @@ class PermissionMgr
            mLocnPmn = true
     }
 
-    private fun needPermisssion (pmn :String) = ContextCompat.checkSelfPermission (mMapAct.applicationContext, pmn) != GRANTED
+    private fun needPermisssion(pmn: String) =
+        ContextCompat.checkSelfPermission (mMapAct.applicationContext, pmn) != GRANTED
 
+    private val CREDENTIAL_PICKER_REQUEST = 2  // Set to an unused request code
+
+    // Construct a request for phone numbers and show the picker
+    private fun requestHint() {
+        val hintRequest = HintRequest.Builder()
+         //   .setPhoneNumberIdentifierSupported(true) //finds mobile number
+            .setEmailAddressIdentifierSupported(true)
+            .build()
+        val credentialsClient = Credentials.getClient(mMapAct)
+        val intent = credentialsClient.getHintPickerIntent(hintRequest)
+        mMapAct.startIntentSenderForResult(// calls the dialog to choose an email account BUT it dopes not find OFFICE365 accounts ie dhamma.org
+            intent.intentSender,
+            CREDENTIAL_PICKER_REQUEST,
+            null, 0, 0, 0
+        )
+    }
+
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (resultCode == Activity.RESULT_OK && data != null)
+            when (requestCode) {
+                CREDENTIAL_PICKER_REQUEST ->
+                    // Obtain the phone number from the result
+                {
+                    val credential = data.getParcelableExtra<Credential>(Credential.EXTRA_KEY)
+                    // -- will need to process phone number string
+                    log("credential = $credential")
+                    log("credential.getId()=${credential?.id}")
+                }
+                // ...
+                ACCOUNTS_Code -> {
+                    val accountManager = AccountManager.get(mMapAct)
+                    mAccounts = accountManager.getAccountsByType(null)
+                    for (acc in mAccounts)
+                        log(" 2  account: " + acc.name + "    type: " + acc.type)
+                }
+            }
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     fun getAccountPmn() {
+        requestHint()
+//        val hintRequest = HintRequest.Builder()
+//            .setHintPickerConfig(
+//                CredentialPickerConfig.Builder()
+//                    .setShowCancelButton(true)
+//                    .build()
+//            )
+//            .setEmailAddressIdentifierSupported(true)
+//            .setAccountTypes(IdentityProviders.GOOGLE)
+//            .build()
+//
+//        val intent: PendingIntent = mCredentialsClient.getHintPickerIntent(hintRequest)
+//        try {
+//            startIntentSenderForResult(intent.intentSender, RC_HINT, null, 0, 0, 0)
+//        } catch (e: SendIntentException) {
+//            Log.e(TAG, "Could not start hint picker Intent", e)
+//        }
+
+        val accounts: Array<Account> = AccountManager.get(mMapAct.applicationContext).getAccountsByType(null)
+        log( "acc.size = ${accounts.size}")
+        for (account in accounts) {
+            log(" 1 account: " + account.name + " type: " + account.type)
+        }
         if (needPermisssion(ACCOUNTS_Pmn)) {
             val intent = AccountManager.newChooseAccountIntent(
                 null,
                 null,
-                arrayOf("com.google"),
+               arrayOf("com.google"
+                   , "com.google.android.legacyimap"
+                   , "com.google.android.gm.legacyimap"
+                   , "com.google.android.gm.pop3"
+                   , "com.microsoft.office.outlook.USER_ACCOUNT"
+                   , "com.twitter.android.auth.login"
+                   , "com.facebook.auth.login"
+                   , "com.linkedin.android"
+               ),
+                //arrayOf("com.google.android.legacyimap"),
+               // null,
                 null,
                 null,
                 null,
@@ -65,18 +141,11 @@ class PermissionMgr
         }
     }
 
-    fun onRequestPermissionsResult (requestCode: Int, permissions: Array<String>, results: IntArray) {
+    fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, results: IntArray) {
         mLocnPmn = false
         if (requestCode == FINE_LOCN_Code)
             mLocnPmn = (results.isNotEmpty() && (results[0] == GRANTED)) // If request is cancelled, the results array is empty.
         updateLocationUI()
-    }
-
-    fun onActivityResult (requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == ACCOUNTS_Code) {
-            val accountManager = AccountManager.get(mMapAct)
-            mAccounts = accountManager.getAccountsByType("com.google")
-        }
     }
 
     private fun updateLocationUI() {

@@ -1,20 +1,12 @@
 package com.example.mymap2
 
-//import android.R
-
-//import com.google.maps.android.clustering.algo
-
-//import android.R
-
 import android.content.Intent
-import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.marginBottom
-import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -29,24 +21,10 @@ import kotlin.math.abs
 import kotlin.math.cos
 
 
-
-// Adds margin to the left and right sides of the RecyclerView item.
-class HMarginItemDecoration
-    (hMarginPx: Int)         // hMarginPx := the required horizontal margin in px.
-    : RecyclerView.ItemDecoration()
-{   private val mPx = hMarginPx
-    override fun getItemOffsets(outRect: Rect, v: View, p: RecyclerView, s: RecyclerView.State) {
-        outRect.right = mPx
-        outRect.left  = mPx
-    }
-}
-
-
 class MapsActivity
     : AppCompatActivity()
     , OnMapReadyCallback
     , GoogleMap.OnMapLoadedCallback
-    //, OnTabSelectedListener
 {
     lateinit var mMap: GoogleMap
 
@@ -61,46 +39,22 @@ class MapsActivity
 //    }
 
 
-    private fun initViewPager(){
-        log("  visibleGS size = ${App.visibleGSs.size}")
-        vwPager.adapter = ViewPagerAdapter(this)
-        //   vwPager.clipToPadding = false
-        //   vwPager.setPadding(48, 0, 48, 0)
-        //   vwPager.setPageMargin(24)
-        // MyRecyclerViewAdapter is an standard RecyclerView.Adapter :)
-        // vwPager.adapter = MyRecyclerViewAdapter()
-        vwPager.offscreenPageLimit = 1  // render the next and previous items so they can partly visible
-        // create PageTransformer that translates the next and previous items horizontally towards the center of the screen, to make them visible
-        val itemHMarginPx = resources.getDimension(R.dimen.vwpager_item_hmargin)
-        val nextVisiblePx = resources.getDimension(R.dimen.vwpager_next_visible)
-        val pageTranslationX = itemHMarginPx + (nextVisiblePx * 2)
-        val pageTransformer = ViewPager2.PageTransformer { page: View, position: Float ->
-            page.translationX = -pageTranslationX * position
-            page.scaleY = 1 - (0.15f * abs(position)) // reduce height of next and previous items
-            //page.alpha = 0.25f + (1 - abs(position))  // for a fading effect
-        }
-        vwPager.setPageTransformer(pageTransformer)
-        // The ItemDecoration gives the current (centered) item horizontal margin so that
-        // it doesn't occupy the whole screen width. Without it the items overlap
-        val itemDecoration = HMarginItemDecoration((itemHMarginPx + nextVisiblePx).toInt())
-        vwPager.addItemDecoration(itemDecoration)
-
-        vwPager.registerOnPageChangeCallback( // pageViewItem SCROLLED
-            object : ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(idx: Int) {
-                    super.onPageSelected(idx)
-                    setSelectedGs(idx)
-                    log("select pageVw item")
-                }
-            }
-        )
-    }
-
     lateinit var mDefMarkerIcon: BitmapDescriptor
     lateinit var mSelMarkerIcon: BitmapDescriptor
     lateinit var mClusterMgr: ClusterManager <GroupSit>
     var mPermissionMgr = PermissionMgr (this)
-    private val mGroupSitEd = GroupSitEditor(this)
+    var mGsEditor :GroupSitEditor? = null
+    var mSelectedGS :GroupSit? = null
+    var mMapLoaded = false
+    var mCountGSs =  App.allGroupSittings.size
+    val mMinClusterSize = 3
+    private var mFreeGSs = listOf<GroupSit>() // Free Groups Sits, sorted by longitude, latitude
+    // "Free" is our term for all items "not rendered as clusters" (in the terms of the library)
+    // The Clustering algorithm sorts ALL GSs into what it confusingly calls "Clusters", even though
+    // the job is only to put some of them, those "close enough", into visible (rendered) clusters.
+    // (All items are in "Clusters" but NOT all items are "RENDERED AS Clusters")
+    // Renderer.shouldRenderAsCluster() decides which of these "Cluster"s actually remain as "free" markers.
+    // And so for this library, all items are "Cluster Items", whether or not they are (rendered as) clustered
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,19 +66,19 @@ class MapsActivity
         App.init(this)
         mDefMarkerIcon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)
         mSelMarkerIcon = BitmapDescriptorFactory.defaultMarker()
-        initViewPager()
 
+        initViewPager (this)
+        vwPager.registerOnPageChangeCallback( // pageViewItem SCROLLED
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(idx: Int) {
+                    super.onPageSelected(idx)
+                    setSelectedGs(idx)
+                    log("select pageVw item")
+                }
+            }
+        )
         mPermissionMgr.getAccountPmn()
         log("onCreate  end")
-
-    }
-
-
-    // To find unclustered GSs, we put code in onClusterItemRendered() and onClusterRendered()
-    private fun setVisibleGSsWhenDone() {
-        mCountGSs--
-        if (mCountGSs <= 0)
-            setVisibleGSs(true)
     }
 
     override fun onMapLoaded() {
@@ -152,101 +106,12 @@ class MapsActivity
             log("end CameraIdle ")
         }
     }
-
-    override fun onRequestPermissionsResult (requestCode: Int, permissions: Array<String>, results: IntArray) {
-        mPermissionMgr.onRequestPermissionsResult (requestCode, permissions, results)
-    }
-
-    override fun onActivityResult (requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        mPermissionMgr.onActivityResult (requestCode, resultCode, data)
-    }
-
-
-
-    fun onClickEdit(editBtn: View){
-        mGroupSitEd.onClickEdit (editBtn)
-    }
-
-    fun onClickEditDone(doneBtn: View){
-        //todo: Save changes
-        mGroupSitEd.doneOrCancel (doneBtn, true)
-    }
-
-    fun onClickEditCancel(cancelBtn: View) {
-        mGroupSitEd.doneOrCancel (cancelBtn, false)
-    }
-
-    var mSelectedGS :GroupSit? = null
-
-    private fun setSelectedGs(idx: Int) {
-        if (App.visibleGSs.isNotEmpty()){
-            val idx2 = if (idx == -1) 0 else idx
-            //assert (idx < App.visGroupSittings.size )
-            if (mSelectedGS == null)
-                vwPager.visibility = View.VISIBLE
-
-            mSelectedGS?.mkr?.setIcon(mDefMarkerIcon)
-            mSelectedGS = App.visibleGSs[idx2]
-            mSelectedGS?.mkr?.run {
-                setIcon(mSelMarkerIcon)
-                //mRenderer.getMarker(it)?.
-                showInfoWindow()
-            }
-            //mSelectedGS() = gs
-      //      toast("Back!")
-        } else {
-            assert (idx == -1)
-            if (mSelectedGS != null) {
-                //it.mkr = null
-                mSelectedGS = null
-                vwPager.visibility = View.INVISIBLE
-           //     toast("Gone!")
-            }
-        }
-    }
-
-    //todo: adjust(true) needs adjusting - top and bottom bounds are both too far north.
-    private fun adjustForVwPager(bounds: LatLngBounds, reduce: Boolean) :LatLngBounds {
-        val neLat = bounds.northeast.latitude
-        val neLng = bounds.northeast.longitude
-        val swLat = bounds.southwest.latitude
-        val swLng = bounds.southwest.longitude
-        val dLat = neLat - swLat              // gods - GreatCircleDegrees
-        val vpHt = vwPager.height
-        val mapHt = mapFrag.view!!.height
-        val margin = vwPager.marginBottom * resources.displayMetrics.density
-        val extraHt =  vwPager.height + margin
-        val p = dLat / 8 // extra top margin to accommodate the marker
-        if (reduce) {
-            val q = (dLat - p) * extraHt / mapHt
-            return LatLngBounds ( LatLng(swLat + q, swLng)
-                                , bounds.northeast )
-        }
-        val targetHt = mapHt - vpHt - margin
-        val avLat = (abs(neLat) + abs(swLat)) / 2
-        val bias = cos(avLat)
-        val dLng = abs(neLng - swLng) * bias // gods
-        val targetWd = mapFrag.view!!.width //- (padding * 2)
-        val dLat2 = dLng * targetHt / targetWd
-        if (dLat > dLat2) {
-            val r = dLat * extraHt / targetHt + p
-            return LatLngBounds( LatLng(swLat - r, swLng)
-                               , LatLng(neLat + p, neLng) )
-        }
-        val s = (dLat2 - dLat) / 2
-        val t = (dLat + 2*s) * extraHt / targetHt + s
-        return LatLngBounds( LatLng(swLat - t - p, swLng)
-                           , LatLng(neLat + s + p, neLng))
-    }
-
-    // Manipulates the map once available. If Google Play services is not installed on the device, the user will be prompted to install it
-    // inside the SupportMapFragment. This method will then be triggered once the user has installed Google Play services and returned to the app.
+    // User will be prompted to install Google Play services if not installed
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.setOnMapLoadedCallback(this)
-  //      googleMap.uiSettings.isZoomControlsEnabled = true
+        //      googleMap.uiSettings.isZoomControlsEnabled = true
         mClusterMgr = ClusterManager<GroupSit>(this, googleMap)
         mClusterMgr.addItems(App.allGroupSittings) // 4
         log("onMapReady")
@@ -289,17 +154,72 @@ class MapsActivity
         mPermissionMgr.update()
     }
 
-    var mMapLoaded = false
-    var mCountGSs =  App.allGroupSittings.size
-    val mMinClusterSize = 3
-    private var mFreeGSs = listOf<GroupSit>() // Free Groups Sits, sorted by longitude, latitude
-    // "Free" is our term for all items "not rendered as clusters" (in the terms of the library)
-    // The Clustering algorithm sorts ALL GSs into what it confusingly calls "Clusters", even though
-    // the job is only to put some of them, those "close enough", into visible (rendered) clusters.
-    // (All items are in "Clusters" but NOT all items are "RENDERED AS Clusters")
-    // Renderer.shouldRenderAsCluster() decides which of these "Cluster"s actually remain as "free" markers.
-    // And so for this library, all items are "Cluster Items", whether or not they are (rendered as) clustered
 
+    override fun onRequestPermissionsResult (requestCode: Int, permissions: Array<String>, results: IntArray) =
+        mPermissionMgr.onRequestPermissionsResult (requestCode, permissions, results)
+
+    override fun onActivityResult (requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        mPermissionMgr.onActivityResult (requestCode, resultCode, data)
+    }
+
+    fun onClickEdit(editBtn: View) { mGsEditor =  GroupSitEditor(this, editBtn) }
+    fun onClickEditCancel(cancelBtn: View) = mGsEditor?.doneOrCancel (cancelBtn)//, false)
+    fun onClickEditDone  (doneBtn: View)   = mGsEditor?.doneOrCancel (doneBtn)//, true)
+
+    private fun setSelectedGs(idx: Int) {
+        if (App.visibleGSs.isNotEmpty()){
+            if (mSelectedGS == null)
+                vwPager.visibility = View.VISIBLE
+
+            mSelectedGS?.mkr?.setIcon(mDefMarkerIcon)
+            mSelectedGS = App.visibleGSs [if (idx == -1) 0 else idx]
+            mSelectedGS?.mkr?.run {
+                setIcon(mSelMarkerIcon)
+                showInfoWindow()
+            }
+        } else {
+            log ("idx = $idx")
+            if (mSelectedGS != null) {
+                mSelectedGS = null
+                vwPager.visibility = View.INVISIBLE
+            }
+        }
+    }
+
+    //todo: adjust(true) needs adjusting - top and bottom bounds are both too far north.
+    private fun adjustForVwPager(bounds: LatLngBounds, reduce: Boolean) :LatLngBounds {
+        val neLat = bounds.northeast.latitude
+        val neLng = bounds.northeast.longitude
+        val swLat = bounds.southwest.latitude
+        val swLng = bounds.southwest.longitude
+        val dLat = neLat - swLat              // gods - GreatCircleDegrees
+        val vpHt = vwPager.height
+        val mapHt = mapFrag.view!!.height
+        val margin = vwPager.marginBottom * resources.displayMetrics.density
+        val extraHt =  vwPager.height + margin
+        val p = dLat / 8 // extra top margin to accommodate the marker
+        if (reduce) {
+            val q = (dLat - p) * extraHt / mapHt
+            return LatLngBounds ( LatLng(swLat + q, swLng)
+                                , bounds.northeast )
+        }
+        val targetHt = mapHt - vpHt - margin
+        val avLat = (abs(neLat) + abs(swLat)) / 2
+        val bias = cos(avLat)
+        val dLng = abs(neLng - swLng) * bias // gods
+        val targetWd = mapFrag.view!!.width //- (padding * 2)
+        val dLat2 = dLng * targetHt / targetWd
+        if (dLat > dLat2) {
+            val r = dLat * extraHt / targetHt + p
+            return LatLngBounds( LatLng(swLat - r, swLng)
+                               , LatLng(neLat + p, neLng) )
+        }
+        val s = (dLat2 - dLat) / 2
+        val t = (dLat + 2*s) * extraHt / targetHt + s
+        return LatLngBounds( LatLng(swLat - t - p, swLng)
+                           , LatLng(neLat + s + p, neLng))
+    }
 
     private fun setVisibleGSs(newClusters: Boolean) { //(clusters: MutableSet<out Cluster<GroupSit>>? = null) {
         val newBounds = adjustForVwPager(mMap.projection.visibleRegion.latLngBounds, true)
@@ -334,7 +254,6 @@ class MapsActivity
         setSelectedGs(newSelGSIdx)
     }
 
-
     private fun updateVwPager(newVisibles: List<GroupSit>) {
         val oldVisibles = App.visibleGSs
         App.visibleGSs = newVisibles
@@ -364,8 +283,7 @@ class MapsActivity
             }
             do {if (new == old) {
                     nextOld()
-                    nextNew()
-                    log("                                       (keep  1 item at posn $p)")
+                    nextNew() // log("      (keep  1 item at posn $p)")
                     p++
                 } else {
                     if (!oldEnd) {
@@ -375,8 +293,7 @@ class MapsActivity
                             nextOld()
                             if (oldEnd) break
                         }
-                        if (r > 0) {
-                            log("                                       removed $r items starting from posn $p")
+                        if (r > 0) { //log("      removed $r items starting from posn $p")
                             vwPager.adapter?.notifyItemRangeRemoved(p, r)
                             continue
                     }   }
@@ -387,13 +304,19 @@ class MapsActivity
                             nextNew()
                             if (newEnd) break
                         }
-                        if (a > 0) {
-                            log("                                       inserted $a items starting from posn $p")
+                        if (a > 0) {//log("      inserted $a items starting from posn $p")
                             vwPager.adapter?.notifyItemRangeInserted(p, a)
                             p += a
                 }   }   }
             } while (!(newEnd && oldEnd))
         }
+    }
+
+    // To find unclustered GSs, we put code in onClusterItemRendered() and onClusterRendered()
+    private fun setVisibleGSsWhenDone() {
+        mCountGSs--
+        if (mCountGSs <= 0)
+            setVisibleGSs(true)
     }
 
     inner class CustomClusterRenderer(
@@ -404,14 +327,12 @@ class MapsActivity
             cluster?.run{ size >= mMinClusterSize } ?: false
 
         override fun onBeforeClusterItemRendered(gs: GroupSit?, mkrOpts: MarkerOptions?) {
-            gs?.let{ mkrOpts?.icon (if (it == mSelectedGS)
-                                         mSelMarkerIcon
-                                    else mDefMarkerIcon
-                ) }
+            gs?.let{ mkrOpts?.icon (if (it == mSelectedGS)  mSelMarkerIcon
+                                    else                    mDefMarkerIcon ) }
             super.onBeforeClusterItemRendered (gs, mkrOpts)
         }
         override fun onClusterItemRendered(gs: GroupSit?, marker: Marker?) {
-            //These items are NOT in a cluster
+            //NB  "ClusterItems" are the ones NOT in a cluster
             super.onClusterItemRendered(gs, marker)
             if (gs != null) {
                 check (marker != null)
